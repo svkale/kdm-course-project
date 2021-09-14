@@ -1,0 +1,69 @@
+import time
+import math
+import DraftVecUtils
+
+def get_edge_vector(edge):
+	return edge.EndPoint.sub(edge.StartPoint)
+
+def get_edge_midpoint(edge):
+	return edge.EndPoint.add(edge.StartPoint).multiply(0.5)
+
+def get_ccwangle(v1,v2,always_positive=False): #counter clockwise
+	angle=DraftVecUtils.angle(v1,v2)
+	if always_positive and angle<0:
+		return angle+2*math.pi
+	return angle
+
+def show_animation(revs,sktch):
+	Gui.ActiveDocument.setEdit(sktch.ViewObject)
+	angle=0
+	revolutions=0
+	while revolutions!=revs-1 or angle!=355:
+		time.sleep(0.001)
+		angle+=5
+		sktch.setDatum(10,App.Units.Quantity(str(angle)+' deg'))
+		App.ActiveDocument.recompute()
+		if angle == 360:
+			angle=0
+			revolutions+=1
+			print(str(revolutions)+" resolution/s completed")
+	print(str(revs)+" resolution/s completed")
+	sktch.setDatum(10,App.Units.Quantity('0 deg'))
+	App.ActiveDocument.recompute()
+	Gui.ActiveDocument.resetEdit()
+	return
+
+
+def calculate_dimensions(step,sktch,sprdsheet):
+	Gui.ActiveDocument.setEdit(sktch.ViewObject)
+	angle=0
+	sktch.setDatum(10,App.Units.Quantity('0 deg'))
+	App.ActiveDocument.recompute()
+	while angle<360:
+		edges=sktch.Geometry
+		coupler_angle=math.degrees(get_ccwangle(get_edge_vector(edges[0]),get_edge_vector(edges[2]).multiply(-1),True))
+		follower_angle=math.degrees(get_ccwangle(get_edge_vector(edges[0]),get_edge_vector(edges[1]),True))
+		transmission_angle=math.degrees(get_ccwangle(get_edge_vector(edges[2]),get_edge_vector(edges[1]).multiply(-1),True))
+		sprdsheet.set('B'+str(4+angle/step),str(angle))
+		sprdsheet.set('C'+str(4+angle/step),str(coupler_angle))
+		sprdsheet.set('D'+str(4+angle/step),str(follower_angle))
+		sprdsheet.set('E'+str(4+angle/step),str(transmission_angle))
+		sprdsheet.set('G'+str(4+angle/step),str(get_edge_midpoint(edges[2]).x))
+		sprdsheet.set('H'+str(4+angle/step),str(get_edge_midpoint(edges[2]).y))
+		angle+=step
+		sktch.setDatum(10,App.Units.Quantity(str(angle)+' deg'))
+		App.ActiveDocument.recompute()
+	sktch.setDatum(10,App.Units.Quantity('0 deg'))
+	App.ActiveDocument.recompute()
+	Gui.ActiveDocument.resetEdit()
+	print("Spreadsheet updated.")
+	return
+
+print("Started...")
+
+show_animation(3,App.ActiveDocument.getObjectsByLabel("Sketch_Open")[0])
+show_animation(3,App.ActiveDocument.getObjectsByLabel("Sketch_Cross")[0])
+#calculate_dimensions(30,App.ActiveDocument.getObjectsByLabel("Sketch_Open")[0],App.ActiveDocument.getObjectsByLabel("Spreadsheet_Open")[0])
+#calculate_dimensions(30,App.ActiveDocument.getObjectsByLabel("Sketch_Cross")[0],App.ActiveDocument.getObjectsByLabel("Spreadsheet_Cross")[0])
+
+# execfile("/home/user/Documents/FreeCAD/Macro/rotate_4bar.FCMacro")
