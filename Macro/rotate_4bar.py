@@ -39,7 +39,7 @@ def show_animation(revs,sktch,sprdsheet):
 	GUI.setEdit(sktch.ViewObject)
 	angle=0
 	revolutions=0
-	while True:
+	while revolutions<revs:
 		time.sleep(0.001)
 		angle+=5
 		sktch.setDatum(sktch.getIndexByName("InputAngle"),App.Units.Quantity(str(angle)+" deg"))
@@ -48,8 +48,6 @@ def show_animation(revs,sktch,sprdsheet):
 			angle=0
 			revolutions+=1
 			print(str(revolutions)+" revolution/s completed")
-			if revolutions==revs:
-				break
 	sktch.setDatum(sktch.getIndexByName("InputAngle"),App.Units.Quantity('0 deg'))
 	APP.recompute()
 	GUI.resetEdit()
@@ -57,7 +55,7 @@ def show_animation(revs,sktch,sprdsheet):
 	return
 
 
-def calculate_dimensions(steps,sprdsheet,configD,velD,accD,sprdsheet_input):
+def analyze_mechanism(steps,sprdsheet,configD,velD,accD,sprdsheet_input):
 	sprdsheet.clear('B4:Z5000')
 	angle=0
 	step=360/steps	
@@ -101,19 +99,15 @@ def calculate_dimensions(steps,sprdsheet,configD,velD,accD,sprdsheet_input):
 		accD.setDatum(accD.getIndexByName("RadialCrank"),App.Units.Quantity(str(vCrank * vCrank / lCrank)+" mm"))
 		accD.setDatum(accD.getIndexByName("RadialCoupler"),App.Units.Quantity(str(vCoupler * vCoupler / lCoupler)+" mm"))
 		accD.setDatum(accD.getIndexByName("RadialFollower"),App.Units.Quantity(str(vFollower * vFollower / lFollower)+" mm"))
-		print("RadialCrank",vCrank * vCrank / lCrank)
-		print("RadialCoupler",vCoupler * vCoupler / lCoupler)
-		print("RadialFollower",vFollower * vFollower / lFollower)
 		APP.recompute()
 
 		accs=accD.Geometry
-		sprdsheet.set('Q'+str(int(4+angle/step)),"= "+str(math.sqrt(accs[0].length()**2 + accs[1].length()**2))+" mm/s^2")
-		sprdsheet.set('R'+str(int(4+angle/step)),"= "+str(math.sqrt(accs[2].length()**2 + accs[3].length()**2))+" mm/s^2")
-		sprdsheet.set('S'+str(int(4+angle/step)),"= "+str(math.sqrt(accs[4].length()**2 + accs[5].length()**2))+" mm/s^2")
+		sprdsheet.set('Q'+str(int(4+angle/step)),"= "+str(math.sqrt(accs[2].length()**2 + accs[3].length()**2))+" mm/s^2")
+		sprdsheet.set('R'+str(int(4+angle/step)),"= "+str(math.sqrt(accs[4].length()**2 + accs[5].length()**2))+" mm/s^2")
 		dirAC = 1 if get_ccwangle(get_edge_vector(bars[1]),get_edge_vector(accs[2]))>0 else -1
 		dirAF = 1 if get_ccwangle(get_edge_vector(bars[2]),get_edge_vector(accs[4]))>0 else -1
-		sprdsheet.set('T'+str(int(4+angle/step)),"= "+str(dirAC * accs[2].length() / lCoupler)+" rad/s^2")
-		sprdsheet.set('U'+str(int(4+angle/step)),"= "+str(dirAF * accs[4].length() / lFollower)+" rad/s^2")
+		sprdsheet.set('S'+str(int(4+angle/step)),"= "+str(dirAC * accs[2].length() / lCoupler)+" rad/s^2")
+		sprdsheet.set('T'+str(int(4+angle/step)),"= "+str(dirAF * accs[4].length() / lFollower)+" rad/s^2")
 		angle+=step
 
 		configD.setDatum(configD.getIndexByName("InputAngle"),App.Units.Quantity(str(angle)+' deg'))
@@ -212,12 +206,13 @@ def debug(sktchs):
 			raise RuntimeError(i.Label+" is not fully constrained.")
 	return
 
+#driver code
 debug([obj_label("Sketch_C1"),obj_label("Sketch_C2")])
 set_mechanism([obj_label("Sketch_C2"),obj_label("Sketch_C1")],obj_label("Spreadsheet_InputParameters"))
 show_animation(ROTATIONS,obj_label("Sketch_C2"),obj_label("Spreadsheet_InputParameters"))
 show_animation(ROTATIONS,obj_label("Sketch_C1"),obj_label("Spreadsheet_InputParameters"))
-calculate_dimensions(36,obj_label("Spreadsheet_C1"),obj_label("Sketch_C1"),obj_label("Sketch_V1"),obj_label("Sketch_A1"),obj_label("Spreadsheet_InputParameters"))
-calculate_dimensions(36,obj_label("Spreadsheet_C2"),obj_label("Sketch_C2"),obj_label("Sketch_V2"),obj_label("Sketch_A2"),obj_label("Spreadsheet_InputParameters"))
+analyze_mechanism(36,obj_label("Spreadsheet_C1"),obj_label("Sketch_C1"),obj_label("Sketch_V1"),obj_label("Sketch_A1"),obj_label("Spreadsheet_InputParameters"))
+analyze_mechanism(36,obj_label("Spreadsheet_C2"),obj_label("Sketch_C2"),obj_label("Sketch_V2"),obj_label("Sketch_A2"),obj_label("Spreadsheet_InputParameters"))
 show_plots([obj_label("Spreadsheet_C1"),obj_label("Spreadsheet_C2")])
 
 

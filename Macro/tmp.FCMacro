@@ -1,0 +1,8 @@
+Gui.ActiveDocument.setEdit(sktch.ViewObject)
+angle=0
+revolutions=0
+while revolutions!=revs-1 or angle!=340:
+	time.sleep(0.001)
+	angle+=20
+	sktch.setDatum(10,App.Units.Quantity(str(angle)+' deg'))
+	Gui.updateGui()
